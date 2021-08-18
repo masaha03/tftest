@@ -1,0 +1,132 @@
+<html>
+<head>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"> </script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"> </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] { display: none !important; }
+
+    :root {
+      --base-color: forestgreen;
+    }
+
+    body {
+      margin: 0px;
+    }
+
+    #container, #file-input, #progress {
+      display: block;
+      margin: 1rem;
+    }
+
+    .result.person {
+      --base-color: yellow;
+    }
+
+    .result {
+      opacity: 0.8;
+      border: 1px solid var(--base-color);
+      border-radius: 4px;
+      position: absolute;
+    }
+
+    .result:hover {
+      border-width: 3px;
+    }
+
+    .result > div {
+      border-radius: 4px 0 0 0;
+      margin: -1px 0 0 -1px;
+      width: max-content;
+      background-color: var(--base-color);
+      opacity: 0.8;
+      color: #bbb;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 1px 2px;
+    }
+
+    .result:hover > div::after {
+      content: attr(data-score);
+      display: block;
+      font-weight: normal;
+
+    }
+  </style>
+  
+  <script>
+    function onLoadImage(e) {
+      const file = e.target.files[0];
+      if (file === undefined) {
+        return;
+      }
+
+      reset();
+
+      var objectURL = URL.createObjectURL(file);
+      const img = document.getElementById('img');
+      img.src = objectURL;
+    }
+
+    function reset() {
+      document.querySelectorAll(".result").forEach(el => {
+        el.remove();
+      })      
+    }
+
+    function detect() {
+      const img = document.getElementById('img');
+      const container = document.getElementById('container');
+
+      model.detect(img).then(predictions => {
+        console.log('Predictions: ', predictions);
+  
+        predictions.map(el => {
+          const div = document.createElement('div');
+          const div2 = document.createElement('div');
+          div2.textContent = el.class;
+          div2.dataset.score = el.score.toFixed(2);
+          div.classList.add("result");
+          div.classList.add(el.class.replaceAll(/\s/g,"_"));
+          const [x, y, width, height] = el.bbox;
+          div.style.left = x;
+          div.style.top = y;
+          div.style.width = width;
+          div.style.height = height;
+          container.appendChild(div);
+          div.appendChild(div2);
+        });
+      });
+    }
+
+    let model = null;
+    window.onload = async () => {
+      model = await cocoSsd.load();
+      const input = document.getElementById("file-input");
+      input.onchange = onLoadImage;
+      input.removeAttribute("disabled");
+
+      const progress = document.getElementById("progress");
+      progress.hidden = true;
+
+      const img = document.getElementById('img');
+      img.onload = detect;
+    };
+  </script>
+</head>
+<body>
+
+<input id="file-input" type="file" disabled/>
+
+<progress id="progress"></progress>
+
+<div id="container" style="position: relative;">
+  <img id="img" />
+</div>  
+</body>
+</html>
